@@ -9,53 +9,50 @@ boxes = {}
 
 box_actions = {}
 
-for _ in range(10000):
+n = int(input("Iterations to train (n): "))
+
+for _ in range(n):
     hand_sum = env._get_obs()[0]
 
     if not hand_sum in boxes:
-        boxes[hand_sum] = [True, False]
+        boxes[hand_sum] = { 'hit': 5, 'stay': 5 }
     if not hand_sum in box_actions:
-        box_actions[hand_sum] = []
+        box_actions[hand_sum] = { 'hit': 0, 'stay': 0 }
 
     # True => Hit
     # False => Stay
 
-    action = np.random.choice(boxes[hand_sum])
-    box_actions[hand_sum].append(action)
+    action = np.random.choice(['hit', 'stay'], 1, [boxes[hand_sum]['hit'], boxes[hand_sum]['stay']])[0]
+    box_actions[hand_sum][action] += 1
 
-    observation, reward, done, _ = env.step(action)
+    observation, reward, done, _ = env.step(True if action == 'hit' else False)
     
     if done:
-        if reward > 0:
-            for box in box_actions:
-                boxes[box].extend(box_actions[box])
+        if reward >= 0:
+            for hand_sum in box_actions:
+                boxes[hand_sum]['hit'] += box_actions[hand_sum]['hit']
+                boxes[hand_sum]['stay'] += box_actions[hand_sum]['stay']
         elif reward < 0:
-            for box in box_actions:
-                for a in box_actions[box]:
-                    if Counter(boxes[box])[a] > 1:
-                        boxes[box].remove(a)
+            box_actions[hand_sum][action] -= 1
         box_actions = {}
         env.reset()
     # observation = (hand sum, exposed dealer card, has usable ace?)
 
-for key in sorted(boxes):
-    count = Counter(boxes[key])
-    output = str(key) + ' => '
-    output += 'hit/stay: ' + str(count[True])
-    output += '/' + str(count[False])
-    #print(output)
+for box in sorted(boxes):
+    box_num = str(box)
+    box = boxes[box]
+    print(box_num, "=>", box['hit'], box['stay'], "(hit|stay)")
 
-x = int(input("Hand Sum:"))
+"""
+hand_sum = int(input("Hand Sum:"))
 
-while x != -1:
-    if x in boxes:
-        hit = np.random.choice(boxes[x])
-        if hit:
+while hand_sum != -1:
+    if hand_sum in boxes:
+        action = np.random.choice(['hit', 'stay'], 1, [boxes[hand_sum]['hit'], boxes[hand_sum]['stay']])[0]
+        if action == 'hit':
             print("Computer chooses...Hit")
         else:
             print("Computer chooses...Stay")
-        count = Counter(boxes[x])
-        hit = int(count[True])
-        stay = int(count[False])
-        print("Ratio was", str(hit) + ":" + str(stay), "(hit:stay)")
-    x = int(input("Hand Sum:"))
+        print("Ratio was", str(boxes[hand_sum]['hit']) + ":" + str(boxes[hand_sum]['stay']), "(hit:stay)")
+    hand_sum = int(input("Hand Sum:"))
+"""
